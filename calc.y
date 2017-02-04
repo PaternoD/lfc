@@ -10,17 +10,19 @@
     #include <stdlib.h>
     #include <stdarg.h>
     #include "calc.h"
-
+    
     /* prototypes */
     nodeType *opr(int oper, int nops, ...);
     nodeType *id(int i);
     nodeType *con(int value);
+    nodeType *dec(int i);
     void freeNode(nodeType *p);
     int ex(nodeType *p);
     int yylex(void);
 
     void yyerror(char *s);
     int sym[26];                    /* symbol table */
+    int sym_dec[26];
     int uid = 0;
     %}
 
@@ -37,7 +39,7 @@
 
 %token <iValue> INTEGER         /* NOTE THIS DELCARATION*/
 %token <sIndex> VARIABLE
-%token WHILE IF PRINT TOKVAR TOKMAIN
+%token WHILE IF PRINT VAR MAIN
 %nonassoc IFX
 %nonassoc ELSE
 
@@ -46,25 +48,33 @@
 %left '*' '/'
 %nonassoc UMINUS
 
-%type <nPtr> stmt expr stmt_list
+%type <nPtr> stmt expr stmt_list declaration_list declaration
 
 %%
 
 program:
-        function                   {ex(NULL); exit(0);}
+        declaration_list MAIN '{' function '}'         {ex(NULL); exit(0);}
         ;
+
+declaration_list: 
+                declaration_list declaration {ex($2);freeNode($2);}
+                | /* NULL */        {}
+                ;
+declaration: 
+            VAR VARIABLE ';'    {$$ = dec($2);}
+            ;
 
 function:
         function stmt              {ex($2);freeNode($2);}
-        | /* NULL */
+        | /* NULL */               {}
         ;
 
 stmt:
         ';'                                  {$$ = opr(';', 2, NULL, NULL);} //opr is of type "nodetype", we are putting in the stack a node
         | expr ';'                           {$$ = $1;}
         | PRINT expr ';'                     {$$ = opr(PRINT,1,$2);}
+        
         | VARIABLE '=' expr ';'              {$$ = opr('=',2,id($1),$3);} // remember id is another funtcion that returns a nodetype, we are passing a nodetype as id
-        | TOKVAR VARIABLE ';ù'      {$$ = opr('=',2,id($2),NULL);}
         | WHILE '(' expr ')' stmt            {$$ = opr(WHILE,2,$3,$5);}
         | IF '(' expr ')' stmt %prec IFX     {$$ = opr(IF,2,$3,$5);}
         | IF '(' expr ')' stmt ELSE stmt     {$$ = opr(IF,3,$3,$5,$7);}
@@ -79,7 +89,6 @@ stmt_list:
 expr:
         INTEGER                 {$$ = con($1);} //manage constants
         | VARIABLE              {$$ = id($1);} //manage variables - namely an IDENTIFIER
-        
         | '-' expr %prec UMINUS {$$ = opr(UMINUS,1,$2);}
         | expr '+' expr         {$$ = opr('+',2,$1,$3);}
         | expr '-' expr         {$$ = opr('-',2,$1,$3);}
@@ -111,6 +120,9 @@ nodeType *con(int value){
 }
 
 nodeType *id (int i){
+    if(sym_dec[i]==0){
+        yyerror("Errore: assegnamento o utilizzo di variabile non dichiarata");
+    }
     nodeType *p;
     if((p=malloc(sizeof(nodeType)))==NULL){
         yyerror("out of memory");
@@ -156,6 +168,12 @@ nodeType *opr(int oper, int nops, ...){
     return p;
 }
 
+nodeType *dec(int i){
+    sym_dec[i]=1;
+    nodeType *p=id(i);
+    return p;
+}
+
 void freeNode(nodeType *p){
     int i;
     if(!p) return;
@@ -170,8 +188,23 @@ void freeNode(nodeType *p){
 
 void yyerror(char *s){
     fprintf(stdout,"%s\n",s);
+    exit(0);
 }
-int main(){
+int main(int argc, char *argv[]){
+    extern FILE* yyin;
+    if(argc!=2){
+        printf("Input errato\n");
+        return 1;
+    }
+    FILE* myfile=fopen(argv[1], "r");
+    if(!myfile){
+        printf("Cannot open %s\n", argv[1]);
+        return -1;
+    }
+    yyin=myfile;
+    for(int k=0; k<26; k++){
+        sym_dec[k]=0;
+    }
     yyparse();
     return 0;
 }

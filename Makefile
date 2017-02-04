@@ -1,4 +1,9 @@
-
+# A Makefile for simple lex and yacc examples
+# original file by http://www.csee.umbc.edu/courses/331/fall11/hw/hw4/calc/Makefile
+# more at
+# Comment out the proper lines below according to the scanner and
+# parser generators available in your system
+# REVISION Lorenzo Gramola (2016)
 
 LEX = lex
 YACC = yacc -d
@@ -7,7 +12,7 @@ YACC = yacc -d
 
 # We assume that your C-compiler is called cc
 
-CC = gcc
+CC = gcc -std=c99 -w
 
 # calc is the final object that we will generate, it is produced by
 # the C compiler from the y.tab.o and from the lex.yy.o
@@ -40,4 +45,4 @@ lex.yy.c: calc.l
 ## from scratch
 
 clean:
-	-rm -f *.o lex.yy.c *.tab.*  interpreter *.output
+	-rm -f *.o lex.yy.c *.tab.*  calc *.output

@@ -13,8 +13,7 @@
 %}
 
 %%
-"main"          return TOKMAIN;
-"var"           return TOKVAR;
+
 [a-z]           {
                     yylval.sIndex = *yytext - 'a';
                     return VARIABLE;
@@ -38,6 +37,8 @@
 "if"            return IF;
 "else"          return ELSE;
 "print"         return PRINT;
+"var"           return VAR;
+"main"          return MAIN;
 
 
 [ \t\n]         ;/* skip whitespace */
